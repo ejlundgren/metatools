@@ -1,0 +1,24 @@
+Package: effsize
+Type: Package
+Title: What the Package Does (Title Case)
+Version: 0.1.0
+Authors@R: c(
+    person(
+      "Jane", "Doe",
+      email = "jane@example.com",
+      role = c("aut", "cre")
+    )
+  )
+Description: More about what it does (maybe more than one line).
+    Continuation lines should be indented.
+License: MIT
+Encoding: UTF-8
+LazyData: true
+Depends: R (>= 4.1.0)
+Imports:
+	data.table (>= 1.9.4),
+	MASS (>= 7.3-65),
+	crayon (>= 1.5.3),
+	tools (>= 4.5.0)
+Roxygen: list(markdown = TRUE)
+RoxygenNote: 7.3.2
