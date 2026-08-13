@@ -100,11 +100,13 @@
   cloud_list <- list()
   cloud_length <- 0
   boots_remaining <- SAFE_boots
-  i <- 1
+  i <- 0
   start_time <- Sys.time()
 
   while(cloud_length < SAFE_boots &&
         as.numeric(Sys.time() - start_time) < SAFE_max_secs){
+
+    i <- i+1
 
     # Create Gaussian cloud_list[[i]]s ------------------------------------------------------------
     if(unique(formulas$SAFE_family == "1_normal")){
@@ -241,7 +243,7 @@
 
     cloud_length <- sapply(cloud_list, nrow) |> sum()
     boots_remaining <- SAFE_boots - cloud_length
-    i <- i+1
+    if(boots_remaining < 100) boots_remaining <- 100 # if this becomes == 1, the data shape changes.
 
   } # End while loop
   elapsed_time <- Sys.time() - start_time
@@ -265,16 +267,17 @@
     }
 
     return(data.table::data.table(yi_safe = yi_safe,
-                      vi_safe = vi_safe,
-                      number_SAFE_iterations = i,
-                      number_SAFE_bootstraps = nrow(cloud),
-                      SAFE_elapsed_secs = elapsed_time))
+                                  vi_safe = vi_safe,
+                                  number_SAFE_iterations = i,
+                                  number_SAFE_bootstraps_completed = nrow(cloud),
+                                  SAFE_elapsed_time = elapsed_time
+                                  ))
   }else{
     return(data.table::data.table(yi_safe = NA,
-                      vi_safe = NA,
-                      number_SAFE_iterations = i,
-                      number_SAFE_bootstraps = 0,
-                      SAFE_elapsed_secs = elapsed_time))
+                                  vi_safe = NA,
+                                  number_SAFE_iterations = i,
+                                  number_SAFE_bootstraps_completed = 0,
+                                  SAFE_elapsed_time = elapsed_time))
   }
 }
 

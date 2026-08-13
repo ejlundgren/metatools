@@ -33,7 +33,7 @@ eff_size <- function(...,
                      SAFE_max_secs = 15,
                      n_cores = 1,
                      SAFE_distribution = NULL,
-                     sigma_matrix = NULL,
+                     custom_sigma_matrix = NULL,
                      verbose = T
                      ){
 
@@ -195,24 +195,32 @@ eff_size <- function(...,
       if(length(plugin_effect_size) != max(index)){ return(cat("Shit.")) }
 
       # Run SAFE function for each element of input_vars:
+      # DEBUG:
+      # input <- lapply(input_vars, "[[", k)
+      # plugin_effect = plugin_effect_size[k]
+      # custom_sigma <- NULL
+      # formulas <- definition_formula
+      # set.seed(34) #leads to error
+
       safe_out <- pbapply::pblapply(index, function(k){
         return(.SAFE_calc(formulas = definition_formula, # Changed to this from `effect_formulas.sub`
                           input = lapply(input_vars, "[[", k), # select the first element in each element...
                           plugin_effect = plugin_effect_size[k],
-                          custom_sigma = sigma_matrix[[k]], # submit custom sigma_matrix if it exists.
+                          custom_sigma = custom_sigma_matrix[[k]], # submit custom sigma_matrix if it exists.
                           SAFE_boots = 1e6,
                           SAFE_max_secs = SAFE_max_secs))
       },
       cl = n_cores) |>
-        rbindlist()
+        data.table::rbindlist()
 
-      safe_out[, SAFE_complete := ifelse(number_SAFE_bootstraps == SAFE_boots, "yes", "no")]
-      if(any(safe_out$number_SAFE_bootstraps < SAFE_boots) &&
-         !any(is.na(safe_out$yi_safe))){
+      safe_out[, SAFE_complete := ifelse(number_SAFE_bootstraps_completed == SAFE_boots, "yes", "no")]
+
+      if(nrow(safe_out[SAFE_complete == "no", ]) > 0){
 
         cat(magenta("\n\nBoundary issues prevented full number of SAFE bootstraps for at least one input. Try reducing `SAFE_boots` (1e6 is the default) or increasing time limit `SAFE_max_secs` (15 seconds is default).\n\n"))
 
-      }else if(any(is.na(safe_out$yi_safe))){
+      }
+      if(any(is.na(safe_out$yi_safe))){
 
         cat(magenta("SAFE could not be calculated for at least one of the inputs\n\n"))
 
