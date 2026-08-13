@@ -7,33 +7,49 @@
 eff_size(
   ...,
   effect_type = NULL,
-  SAFE = TRUE,
+  data = NULL,
+  bind = TRUE,
+  paired = FALSE,
+  default_formulas = TRUE,
+  formula_path = "data/effect_size_formulas.csv",
+  SAFE = FALSE,
   SAFE_boots = 1e+06,
+  SAFE_max_secs = 15,
+  n_cores = 1,
   SAFE_distribution = NULL,
   sigma_matrix = NULL,
-  verbose = T,
-  use_custom_formulas = FALSE
+  verbose = T
 )
 }
 \arguments{
 \item{...}{variables required by effect size calculation (e.g., x, x1, x2, sd1, sd2, see Description)}
 
-\item{effect_type}{Character of effect size. Currently supported effect sizes include SMD, lnRoM, lnCVR, OR, RR, blah blah}
+\item{effect_type}{Single length character specifying effect size. Currently supported effect sizes include: SMD, SMDH, lnRoM, lnCVR, lnVR, lnM, Zr, lnHWE}
 
-\item{SAFE}{Logical. Whether to conduct SAFE bootstrapping of effect size}
+\item{data}{An optional data frame containing the variables necessary for calculating effect size.}
 
-\item{SAFE_boots}{Numeric. Number of bootstraps (default is 1e6)}
+\item{bind}{Should the function bind the effect sizes to the inputted data frame? Logical}
 
-\item{SAFE_distribution}{Character. distribution to use for SAFE bootstrapping. See description}
+\item{paired}{Use paired version of effect size? If so, then inputs will differ from unpaired (e.g., \code{n} instead of \code{n1} and \code{n2}).}
 
-\item{sigma_matrix}{Matrix. Optional custom sigma_matrix for SAFE bootstrapping.}
+\item{default_formulas}{Logical. Whether to return default estimators. If FALSE (recommended and the function's default), will return first and second derivative estimators. Note that second refers to bias-corrected estimates (which are not always less biased). See Details.}
 
-\item{verbose}{Verbose or not? Logical}
+\item{SAFE}{Logical. Whether to conduct SAFE bootstrapping of effect size. This is essential to calculate lnM in boundary scenarios}
 
-\item{use_custom_formulas}{Logical. Load user-customized formulas? These are saved to a local path (tools::R_user_dir(package = "effsize", which = "data")) with the add_custom_effect_sizes() function.}
+\item{SAFE_boots}{Numeric. Number of bootstraps. Default is 1e6.}
+
+\item{SAFE_max_secs}{Numeric. Number of seconds to conduct SAFE bootstrapping before timing out. See Details.}
+
+\item{n_cores}{Numeric. Number of cores for parallel processing of SAFE calculation. See Details.}
+
+\item{SAFE_distribution}{Character. Distribution to use for SAFE bootstrapping. If unspecified, will use default distribution. See Details.}
+
+\item{sigma_matrix}{Matrix. Optional custom sigma_matrix for SAFE bootstrapping (experimental)}
+
+\item{verbose}{How chatty do you want the function to be? Logical}
 }
 \value{
-A data.table with effect sizes and sample variances
+A data.table with effect sizes and sample variances.
 }
 \description{
 Blah blah blah

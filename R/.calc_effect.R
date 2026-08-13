@@ -1,22 +1,22 @@
 #' Evaluate formulas
 #'
-#' Used internally
+#' Used internally to evaluate mathematical formulas.
 #'
 #' @param formulas Formula to evalulate
 #' @param input List of named input variables to evaluate formula on
 #' @return A data.table with effect sizes and sample variances
-#' @export
-calc_effect <- function(formulas,
+.calc_effect <- function(formulas,
                         input){
   # Concatenate the formulas into a single formula, separated with ';'
-  exec <- paste(paste(formulas$formula_type, "<-", formulas$exec_formula), collapse = "; ")
+  exec <- paste(formulas$exec_formula, collapse = "; ")
 
   # This adds the effects/variances to the local env but with name assignation:
-  eval(parse(text = exec))
+  eval(parse(text = exec), envir = environment())
 
-  # This gathers them:
-  out <- eval(parse(text = paste0("data.table(", paste(unique(formulas$formula_type), collapse = ", "), ")")))
+  res_list <- lapply(unique(formulas$label), function(x)
+    get(x, envir = environment()))
+  names(res_list) <- unique(formulas$label)
 
-  return(out)
+  return(data.table::as.data.table(res_list))
 }
 

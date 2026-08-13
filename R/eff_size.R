@@ -7,174 +7,226 @@
 #' @importFrom tools R_user_dir
 #' @importFrom parallel mclapply detectCores
 #' @param ... variables required by effect size calculation (e.g., x, x1, x2, sd1, sd2, see Description)
-#' @param effect_type Character of effect size. Currently supported effect sizes include SMD, lnRoM, lnCVR, OR, RR, blah blah
-#' @param SAFE Logical. Whether to conduct SAFE bootstrapping of effect size
-#' @param SAFE_boots Numeric. Number of bootstraps (default is 1e6)
-#' @param SAFE_distribution Character. distribution to use for SAFE bootstrapping. See description
-#' @param sigma_matrix Matrix. Optional custom sigma_matrix for SAFE bootstrapping.
-#' @param verbose Verbose or not? Logical
-#' @param parallelize Logical.
-#' @param use_custom_formulas Logical. Load user-customized formulas? These are saved to a local path (tools::R_user_dir(package = "effsize", which = "data")) with the add_custom_effect_sizes() function.
-#' @return A data.table with effect sizes and sample variances
+#' @param effect_type Single length character specifying effect size. Currently supported effect sizes include: SMD, SMDH, lnRoM, lnCVR, lnVR, lnM, Zr, lnHWE
+#' @param data An optional data frame containing the variables necessary for calculating effect size.
+#' @param bind Should the function bind the effect sizes to the inputted data frame? Logical
+#' @param paired Use paired version of effect size? If so, then inputs will differ from unpaired (e.g., `n` instead of `n1` and `n2`).
+#' @param default_formulas Logical. Whether to return default estimators. If FALSE (recommended and the function's default), will return first and second derivative estimators. Note that second refers to bias-corrected estimates (which are not always less biased). See Details.
+#' @param SAFE Logical. Whether to conduct SAFE bootstrapping of effect size. This is essential to calculate lnM in boundary scenarios
+#' @param SAFE_boots Numeric. Number of bootstraps. Default is 1e6.
+#' @param SAFE_max_secs Numeric. Number of seconds to conduct SAFE bootstrapping before timing out. See Details.
+#' @param n_cores Numeric. Number of cores for parallel processing of SAFE calculation. See Details.
+#' @param SAFE_distribution Character. Distribution to use for SAFE bootstrapping. If unspecified, will use default distribution. See Details.
+#' @param sigma_matrix Matrix. Optional custom sigma_matrix for SAFE bootstrapping (experimental)
+#' @param verbose How chatty do you want the function to be? Logical
+#' @return A data.table with effect sizes and sample variances.
 #' @export
-eff_size <- function(..., # This is where the input variables are passed in.
+eff_size <- function(...,
                      effect_type = NULL,
-                     paired_design = FALSE,
-                     SAFE = TRUE,
+                     data = NULL,
+                     bind = TRUE,
+                     paired = FALSE,
+                     default_formulas = TRUE,
+                     formula_path = "data/effect_size_formulas.csv",
+                     SAFE = FALSE,
                      SAFE_boots = 1e6,
-                     SAFE_distribution = NULL, # Aug 2025: Looks like some of these should provide a choice...
-                     sigma_matrix = NULL, # Custom sigma matrix. Needs to be a list calculated off of data of hte same length as input_vars. Maybe down the road this could be a custom function
-                     verbose = T,
-                     parallelize = T,
-                     use_custom_formula_table = FALSE,
-                     # So users can add formula here instead of to table:
-                     # Which is maybe a better plan anyways...
-                     definition_formula = NULL,
-                     cloud_filtering_rules = NULL
+                     SAFE_max_secs = 15,
+                     n_cores = 1,
+                     SAFE_distribution = NULL,
+                     sigma_matrix = NULL,
+                     verbose = T
                      ){
 
-    input_vars <- list(...)
+    env <- parent.frame()
 
-    # Prepare formula table ---------------------------------------------------
+    # Set up parallel for SAFE
+    pbop <- pbapply::pboptions(type = "txt")
+    pbapply::pboptions(pbop)
 
-    if(!is.null(definition_formula)){
-      if(is.null(cloud_filtering_rules) | is.null(SAFE_distribution)) return(cat(crayon::red("'definition_formula' specified. Must specify cloud_filtering rules and SAFE_distribution type.")))
-      effect_formulas.sub <- data.table(formula = definition_formula,
-                                        SAFE_family = SAFE_distribution,
-                                        cloud_filtering_rules = cloud_filtering_rules,
-                                        formula_type = "yi_definition")
-      effect_formulas.sub[, exec_formula := .create_exec_formula(formula, names(input_vars))]
+    #
+    if(!is.null(data)) dat <- copy(data)
 
-    }else{
-      # >>> Prepare premade formula table -----------------------------------------------
-      path <- file.path(tools::R_user_dir(package = "effsize", which = "data"),
-                        "data",
-                        "modified_effect_formulas.rda")
+    # Load formulas -----------------------------------------------------------
+    load("data/effect_formulas.rda")
 
-      if(use_custom_formula_table == TRUE & file.exists(path)){
-        load(path)
-      }else{
-        load("data/effect_formulas.rda")
-        if(use_custom_formulas == TRUE) cat("No modified formula table present. Using stable formulas.")
-      }
-      setorder(effect_formulas, name, calc_type)
+    data.table::setorder(effect_formulas, effect_size, calc_type)
 
-      # >>> Preliminary checks and filtering --------------------------------------------------
+    # Check that effect type is specified and filter formulas
+    if(is.null(effect_type)){
 
-      # Could build some tutorial information into this:
-      if(is.null(effect_type)){
-        cat(crayon::red(("\nMust specify an effect size type ('effect_type') and necessary variables (named in arguments to function call) to match formula equations.\n")),
-            crayon::blue("\nReturning effect size names & required variables for reference.\n\n"))
-        return(unique(effect_formulas[, .(name, vars_required)]))
-      }else{
-        # filter to desired effect_type  and calculation
-        effect_formulas.sub <- effect_formulas[name == effect_type, ]
-      }
+      cat(blue(("\nEffect type name must be specified with 'effect_type' argument and provide necessary variables (named in arguments to function call) to match formula equations.\n")),
+          blue("\nReturning effect size names & required variables for reference.\n\n"))
+      return(unique(effect_formulas[, .(effect_size, paired_design, vars_required)]))
 
-      if(length(unique(lengths(input_vars))) > 1){ return(cat("Input vectors", "(", red(paste(names(input_vars), collapse = ", ")), ")",  "are different lengths. Please double check inputs.")) }
+    }else if(effect_type %in% effect_formulas$effect_size){
+      # filter to desired effect_type  and calculation
+      effect_formulas.sub <- effect_formulas[effect_size == effect_type, ]
 
-      # Deal with missing 'r'
-      if(paired_design == TRUE & !"r" %in% names(input_vars)){
-        cat("Paired design selected", crayon::red("but 'r' not specified."), "Setting 'r' to 0.5.\n\nBe sure that n1 == n2 for all observations.")
-        input_vars$r <- rep(0.5, max(lengths(input_vars)))
-      }else if(paired_design == FALSE & "yes" %in% effect_formulas.sub$accepts_paired_design){
-        input_vars$r <- rep(0, max(lengths(input_vars))) # This is necessary for the shared sigma_matrices of some effect size
-      }
+      if(any(paired %in% effect_formulas.sub$paired_design)) effect_formulas.sub <- effect_formulas.sub[paired_design == paired, ]
 
-      # Check for missing variables.
-      vars <- strsplit(unique(effect_formulas.sub$vars_required), split = ", ") |> unlist()
-      if(length(setdiff(vars, names(input_vars))) > 0){
-        return(cat("Missing the following variables:",
-                   crayon::red(paste(setdiff(vars, names(input_vars)), collapse=", ")), "\n"))
-      }
+    }else if(!effect_type %in% effect_formulas$effect_size){
 
-      # Print effect size specific warnings, e.g., 0 in lnOR and lnRR
-      if(!is.na(unique(effect_formulas.sub$special_warnings)) & verbose == TRUE){
-        cat(crayon::magenta(unique(effect_formulas.sub$special_warnings)),
-            "\nLeaving it to user's discretion to check prior to execution.\n")
-      }
-
-      # Deal with alternative SAFE distributions.
-      if(is.null(SAFE_distribution) & "yes" %in% effect_formulas.sub$default_SAFE_family){
-        # If unspecified (SAFE_distribution == NULL & there are multiple options for default, then choose default
-        effect_formulas.sub <- effect_formulas.sub[default_SAFE_family == "yes", ]
-      }else if(!is.null(SAFE_distribution)){
-        # If SAFE_distribution is specified, subset to SAFE_distribution
-        effect_formulas.sub <- effect_formulas.sub[SAFE_family == SAFE_distribution, ]
-      }
-
-      # If unspecified (SAFE_distribution == NULL & effect_formulas.sub$default is all NA then do nothing)
-      if(nrow(effect_formulas.sub) == 0){
-        return(cat(crayon::red("\nEffect size not available after filtering to type."),
-                   "\n\nEffect sizes currently supported include:", paste(sort(unique(effect_formulas$name)), collapse = "; "),
-                   crayon::blue("\n\nTo add custom effect sizes please see add_custom_effect_sizes")) )
-      }
+      cat(blue("Effect type name misspecified"),
+          blue("\nReturning effect size names & required variables for reference.\n\n"))
+      return(unique(effect_formulas[, .(effect_size, vars_required)]))
 
     }
 
-  # Calculate plugin effect size: -------------------------------------------------
-  if(verbose){
-    effect_formulas.sub[, to_console := paste0(formula_type, " <- ", formula)]
-    cat("Using the formulas:\n\t", crayon::blue(paste(effect_formulas.sub$to_console, collapse = "\n\t ")),
-        "\nBe sure that all variables in formula are correctly named.\n\n")
-  }
+    # If SAFE is unsupported let the user know and set SAFE to FALSE
+    if(all(is.na(effect_formulas.sub$SAFE_family))){
+      SAFE <- FALSE
+      cat(blue("SAFE is currently not implemented for this effect size"))
+    }
 
-  # effsize::
-  plugins <- calc_effect(effect_formulas.sub,
-                         input_vars)
+    if(SAFE == FALSE){
+      # Drop extra rows for multiple SAFE methods:
+      effect_formulas.sub <- effect_formulas.sub[default_safe_family %in% c("yes"), ]
+    }
 
-  if(SAFE == FALSE){
-    return(plugins)
-  }else if(!"yi_definition" %in% effect_formulas.sub$formula_type){
-    return(cat("'yi_definition' formula required to conduct SAFE calculation. If using custom formulas, please read vignette(). If this error is experienced with stable effect sizes as published, please file an Issue at github.com/ejlundgren/XXXXX"))
-  }
+    # Get the required variables:
+    vars <- strsplit(unique(effect_formulas.sub$vars_required), split = ", ") |>
+      unlist()
 
-  # SAFE calculation ----------------------------------------------------------------
+    # >>> Parse inputs ----------------------------------------------------
+    # If debugging, skip this section
 
-  # Extract definition effect size.
-  plugin_effect_size <- plugins$yi_definition
-  definition_formula <- effect_formulas.sub[formula_type == "yi_definition", ]
+    # Function can now accept vectors or NSE inputs (unquoted column names)
+    call_expr <- match.call(expand.dots = TRUE)
+    args <- as.list(call_expr)[-1]
+    if("" %in% names(args)) stop("Numeric arguments must be named")
 
-  # Run SAFE function for each element of input_vars:
-  SAFE_out <- parallel::mclapply(1:length(plugin_effect_size), function(k){
-      input_k <- lapply(input_vars, "[[", k)
+    args <- args[vars[vars %in% names(args)]] # because of optionally specified r
+    input_vars <- list()
 
-      # effsize::
-      cloud <- parameter_cloud(family = unique(effect_formulas.sub$SAFE_family),
-                               input = input_k,
-                               cloud_filtering_rule <- unique(effect_formulas.sub$cloud_filtering_rules),
-                               sigma_matrix = sigma_matrix[[k]], #' if specified by user. Otherwise calculated based on sim_family
-                               SAFE_boots = SAFE_boots)
+    #
+    if(!is.null(data)){
+      setDT(dat)
+      for(i in 1:length(args)){
+        input_vars[[i]] <- dat[, eval(args[[i]], envir = env)]
+      }
 
-      # Add missing inputs (e.g., n)
-      cloud <- data.table::data.table(cloud,
-                                      input_k[!names(input_k) %in% names(cloud)] |>
-                                        unlist() |>
-                                        t() |>
-                                        data.table())
+    }else if(is.vector(eval(args[[1]], envir = env))){
+      for(i in 1:length(args)){
+        input_vars[[i]] <- eval(args[[i]], envir = env)
+      }
+    }
+    names(input_vars) <- names(args)
 
-      # Convert cloud
-      #effsize::
-      cloud_trans <- calc_effect(formulas = definition_formula,
-                                 input = cloud)
+    if(length(unique(lengths(input_vars))) > 1){ stop(cat("Input vectors", "(", red(paste(names(input_vars), collapse = ", ")), ")",  "are different lengths. Please double check inputs.")) }
 
-      # bias corrected estimate of sampling variance and SE:
-      safe_SE <- stats::sd(cloud_trans$yi_definition)
-      safe_vi <- safe_SE^2
+    # >>> Preliminary checks and filtering --------------------------------------------------
+    # Deal with missing 'r'
+    if(paired == TRUE &
+       !"r" %in% names(input_vars)){
 
-      bias_SAFE <- mean(cloud_trans$yi_definition) - plugin_effect_size[k]
+      cat("Paired design selected", red("but 'r' not specified."), "Setting 'r' to 0.5\n")
+      input_vars$r <- rep(0.5, max(lengths(input_vars)))
 
-      safe_yi <- plugin_effect_k - bias_SAFE
 
-      return(data.table(yi_safe = safe_yi,
-                               vi_safe = safe_vi,
-                               SE_safe = safe_SE))
-    },
-    mc.cores = ifelse(parallelize == TRUE,
-                         (parallel::detectCores()-1),
-                         1),
-      mc.allow.recursive = TRUE)
+    }else if(paired == FALSE &
+             !"r" %in% names(input_vars)){
 
-  out <- cbind(plugins, data.table::rbindlist(SAFE_out))
-  return(out)
+      input_vars$r <- rep(0, max(lengths(input_vars))) # This is necessary for the shared sigma_matrices of some effect sizes
+
+    }
+
+    # Check for missing variables.
+    if(!all(vars %in% names(input_vars))){
+      return(cat("Missing the following variables:",
+                 red(paste(setdiff(vars, names(input_vars)), collapse=", ")), "\n"))
+    }
+
+    # Print effect size specific warnings, e.g., 0 in lnOR and lnRR
+    if(!is.na(unique(effect_formulas.sub$special_warnings)) &
+       verbose == TRUE){
+      cat(unique(effect_formulas.sub$special_warnings), "\n",
+          "Leaving it to user's discretion to check prior to execution.\n\n")
+    }
+
+    # Deal with alternative SAFE distributions.
+    if(is.null(SAFE_distribution) &
+       "yes" %in% effect_formulas.sub$default_safe_family &
+       SAFE == TRUE){
+      # If unspecified (SAFE_distribution == NULL & there are multiple options for default, then choose default
+      effect_formulas.sub <- effect_formulas.sub[default_safe_family == "yes", ]
+    }else if(!is.null(SAFE_distribution)){
+      # If SAFE_distribution is specified, subset to SAFE_distribution
+      effect_formulas.sub <- effect_formulas.sub[SAFE_family == SAFE_distribution, ]
+    }
+    # If unspecified (SAFE_distribution == NULL & effect_formulas.sub$default is all NA then do nothing)
+
+    if(nrow(effect_formulas.sub) == 0){
+      return(cat(red("\nEffect size not available after filtering to type."),
+                 "\n\nEffect sizes currently supported include:", paste(sort(unique(effect_formulas$effect_size)), collapse = "; "),
+                 blue("\n\nTo add custom effect sizes please see XXXX")) )
+    }
+
+
+    # >>> Filter defaults ---------------------------------------------------------
+    # For SAFE:
+    if(SAFE == TRUE) definition_formula <- effect_formulas.sub[derivative == "first" & calc_type == "point_estimate", ]
+
+    if(default_formulas == TRUE) effect_formulas.sub <- effect_formulas.sub[default == "yes", ]
+
+    # >>> Calculate plugin effect size: -------------------------------------------------
+    if(verbose){
+
+      cat("Using the formulas:\n\t", blue(paste(effect_formulas.sub$formula, collapse = "\n\t ")),
+          "\nBe sure that all variables in formula are correctly named.\n\n")
+    }
+
+    plugins <- suppressWarnings(.calc_effect(effect_formulas.sub, input_vars))
+
+    if(any(is.na(unlist(plugins)))) cat(magenta("Plugin effect sizes could not be calculated\n\n"))
+
+    if(default_formulas == TRUE) setnames(plugins, names(plugins), gsub("_first|_second", "", names(plugins)))
+
+    if(SAFE == TRUE){
+
+      # >>> SAFE calculation ----------------------------------------------------------------
+      # Extract reference plugin effect size. First order.
+      definition <- .calc_effect(definition_formula,
+                                 input_vars)
+      plugin_effect_size <- definition$yi_first
+
+      index <- seq(1:max(lengths(input_vars)))
+      k <- 1
+
+      if(length(plugin_effect_size) != max(index)){ return(cat("Shit.")) }
+
+      # Run SAFE function for each element of input_vars:
+      safe_out <- pblapply::pblapply(index, function(k){
+        return(.SAFE_calc(formulas = definition_formula, # Changed to this from `effect_formulas.sub`
+                          input = lapply(input_vars, "[[", k), # select the first element in each element...
+                          plugin_effect = plugin_effect_size[k],
+                          custom_sigma = sigma_matrix[[k]], # submit custom sigma_matrix if it exists.
+                          SAFE_boots = 1e6,
+                          SAFE_max_secs = SAFE_max_secs))
+      },
+      cl = n_cores) |>
+        rbindlist()
+
+      if(safe_out$number_SAFE_bootstraps < SAFE_boots &
+         !is.na(safe_out$yi_safe)){
+
+        cat(magenta("\n\nBoundary issues prevented full number of SAFE bootstraps. Try increasing time limit `SAFE_max_secs`. Default is 15 seconds.\n\n"))
+
+      }else if(is.na(safe_out$yi_safe)){
+
+        cat(magenta("SAFE could not be calculated\n\n"))
+
+      }
+
+      out <- cbind(plugins, safe_out)
+
+    }else if(SAFE == FALSE){
+      out <- plugins
+    }
+
+    # >>> Return objects ------------------------------------------------------
+    if(bind == TRUE & !is.null(data)){
+      out <- cbind(data, out)
+    }
+
+    return(out)
 }
