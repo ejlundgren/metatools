@@ -244,6 +244,7 @@
     i <- i+1
 
   } # End while loop
+  elapsed_time <- Sys.time() - start_time
 
   cloud <- rbindlist(cloud_list)
 
@@ -266,12 +267,14 @@
     return(data.table::data.table(yi_safe = yi_safe,
                       vi_safe = vi_safe,
                       number_SAFE_iterations = i,
-                      number_SAFE_bootstraps = nrow(cloud)))
+                      number_SAFE_bootstraps = nrow(cloud)),
+                      SAFE_elapsed_secs = elapsed_time)
   }else{
     return(data.table::data.table(yi_safe = NA,
                       vi_safe = NA,
                       number_SAFE_iterations = i,
-                      number_SAFE_bootstraps = 0))
+                      number_SAFE_bootstraps = 0,
+                      SAFE_elapsed_secs = elapsed_time))
   }
 }
 
