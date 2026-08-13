@@ -206,14 +206,15 @@ eff_size <- function(...,
       cl = n_cores) |>
         rbindlist()
 
-      if(safe_out$number_SAFE_bootstraps < SAFE_boots &
-         !is.na(safe_out$yi_safe)){
+      safe_out[, SAFE_complete := ifelse(number_SAFE_bootstraps == SAFE_boots, "yes", "no")]
+      if(any(safe_out$number_SAFE_bootstraps < SAFE_boots) &
+         !any(is.na(safe_out$yi_safe))){
 
-        cat(magenta("\n\nBoundary issues prevented full number of SAFE bootstraps. Try increasing time limit `SAFE_max_secs`. Default is 15 seconds.\n\n"))
+        cat(magenta("\n\nBoundary issues prevented full number of SAFE bootstraps. Try reducing `SAFE_boots` (1e6 is the default) or increasing time limit `SAFE_max_secs` (15 seconds is default).\n\n"))
 
-      }else if(is.na(safe_out$yi_safe)){
+      }else if(any(is.na(safe_out$yi_safe))){
 
-        cat(magenta("SAFE could not be calculated\n\n"))
+        cat(magenta("SAFE could not be calculated for at least one of the inputs\n\n"))
 
       }
 
