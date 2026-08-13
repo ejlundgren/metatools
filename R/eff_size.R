@@ -170,8 +170,9 @@ eff_size <- function(...,
 
     # >>> Calculate plugin effect size: -------------------------------------------------
     if(verbose){
-
-      cat("Using the formulas:\n\t", blue(paste(effect_formulas.sub$formula, collapse = "\n\t ")),
+      cat("Using the formulas:\n\t", blue(paste(
+              unique(unlist(strsplit(effect_formulas.sub$formula, "; "))),
+              collapse = "\n\t ")),
           "\nBe sure that all variables in formula are correctly named.\n\n")
     }
 
