@@ -231,7 +231,7 @@
     # Calculate estimates -------------------------------------------------
 
     # Convert cloud
-    cloud_list[[i]]$yi_first <- suppressWarnings(.calc_effect(formulas = formulas[calc_type == "point_estimate" &
+    cloud_list[[i]]$yi_first <- suppressWarnings(metatools:::.calc_effect(formulas = formulas[calc_type == "point_estimate" &
                                                                                     derivative == "first", ],
                                                               input = cloud_list[[i]])$yi_first)
 

@@ -175,7 +175,7 @@ eff_size <- function(...,
           "\nBe sure that all variables in formula are correctly named.\n\n")
     }
 
-    plugins <- suppressWarnings(.calc_effect(effect_formulas.sub, input_vars))
+    plugins <- suppressWarnings(metatools:::.calc_effect(effect_formulas.sub, input_vars))
 
     if(any(is.na(unlist(plugins)))) cat(magenta("Plugin effect sizes could not be calculated\n\n"))
 
@@ -185,7 +185,7 @@ eff_size <- function(...,
 
       # >>> SAFE calculation ----------------------------------------------------------------
       # Extract reference plugin effect size. First order.
-      definition <- .calc_effect(definition_formula,
+      definition <- metatools:::.calc_effect(definition_formula,
                                  input_vars)
       plugin_effect_size <- definition$yi_first
 
@@ -196,7 +196,7 @@ eff_size <- function(...,
 
       # Run SAFE function for each element of input_vars:
       safe_out <- pblapply::pblapply(index, function(k){
-        return(.SAFE_calc(formulas = definition_formula, # Changed to this from `effect_formulas.sub`
+        return(metatools:::.SAFE_calc(formulas = definition_formula, # Changed to this from `effect_formulas.sub`
                           input = lapply(input_vars, "[[", k), # select the first element in each element...
                           plugin_effect = plugin_effect_size[k],
                           custom_sigma = sigma_matrix[[k]], # submit custom sigma_matrix if it exists.
