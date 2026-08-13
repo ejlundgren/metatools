@@ -116,14 +116,14 @@ eff_size <- function(...,
 
     # >>> Preliminary checks and filtering --------------------------------------------------
     # Deal with missing 'r'
-    if(paired == TRUE &
+    if(paired == TRUE &&
        !"r" %in% names(input_vars)){
 
       cat("Paired design selected", red("but 'r' not specified."), "Setting 'r' to 0.5\n")
       input_vars$r <- rep(0.5, max(lengths(input_vars)))
 
 
-    }else if(paired == FALSE &
+    }else if(paired == FALSE &&
              !"r" %in% names(input_vars)){
 
       input_vars$r <- rep(0, max(lengths(input_vars))) # This is necessary for the shared sigma_matrices of some effect sizes
@@ -137,15 +137,15 @@ eff_size <- function(...,
     }
 
     # Print effect size specific warnings, e.g., 0 in lnOR and lnRR
-    if(!is.na(unique(effect_formulas.sub$special_warnings)) &
+    if(!is.na(unique(effect_formulas.sub$special_warnings)) &&
        verbose == TRUE){
       cat(unique(effect_formulas.sub$special_warnings), "\n",
           "Leaving it to user's discretion to check prior to execution.\n\n")
     }
 
     # Deal with alternative SAFE distributions.
-    if(is.null(SAFE_distribution) &
-       "yes" %in% effect_formulas.sub$default_safe_family &
+    if(is.null(SAFE_distribution) &&
+       "yes" %in% effect_formulas.sub$default_safe_family &&
        SAFE == TRUE){
       # If unspecified (SAFE_distribution == NULL & there are multiple options for default, then choose default
       effect_formulas.sub <- effect_formulas.sub[default_safe_family == "yes", ]
@@ -178,7 +178,7 @@ eff_size <- function(...,
 
     plugins <- suppressWarnings(.calc_effect(effect_formulas.sub, input_vars))
 
-    if(any(is.na(unlist(plugins)))) cat(magenta("Plugin effect sizes could not be calculated\n\n"))
+    if(any(is.na(unlist(plugins)))) cat(magenta("At least one plugin effect size could not be calculated\n\n"))
 
     if(default_formulas == TRUE) setnames(plugins, names(plugins), gsub("_first|_second", "", names(plugins)))
 
@@ -207,7 +207,7 @@ eff_size <- function(...,
         rbindlist()
 
       safe_out[, SAFE_complete := ifelse(number_SAFE_bootstraps == SAFE_boots, "yes", "no")]
-      if(any(safe_out$number_SAFE_bootstraps < SAFE_boots) &
+      if(any(safe_out$number_SAFE_bootstraps < SAFE_boots) &&
          !any(is.na(safe_out$yi_safe))){
 
         cat(magenta("\n\nBoundary issues prevented full number of SAFE bootstraps for at least one input. Try reducing `SAFE_boots` (1e6 is the default) or increasing time limit `SAFE_max_secs` (15 seconds is default).\n\n"))
@@ -225,7 +225,7 @@ eff_size <- function(...,
     }
 
     # >>> Return objects ------------------------------------------------------
-    if(bind == TRUE & !is.null(data)){
+    if(bind == TRUE && !is.null(data)){
       out <- cbind(data, out)
     }
 

@@ -99,16 +99,17 @@
 
   cloud_list <- list()
   cloud_length <- 0
+  boots_remaining <- SAFE_boots
   i <- 1
   start_time <- Sys.time()
 
-  while(cloud_length < SAFE_boots &
+  while(cloud_length < SAFE_boots &&
         as.numeric(Sys.time() - start_time) < SAFE_max_secs){
 
     # Create Gaussian cloud_list[[i]]s ------------------------------------------------------------
     if(unique(formulas$SAFE_family == "1_normal")){
 
-      cloud_list[[i]] <- data.table::data.table(x = rnorm(n=SAFE_boots,
+      cloud_list[[i]] <- data.table::data.table(x = rnorm(n=boots_remaining,
                                               mean = var_guide$mean,
                                               sd = sigma_matrix))
 
@@ -116,7 +117,7 @@
                                          "2_multivariate_normal",
                                          "2_multinomial_as_normal")){
 
-      cloud_list[[i]] <- MASS::mvrnorm(n = SAFE_boots,
+      cloud_list[[i]] <- MASS::mvrnorm(n = boots_remaining,
                                        mu = means,
                                        Sigma = sigma_matrix) |>
         as.data.frame() |>
@@ -152,7 +153,7 @@
 
     }else if(formulas$SAFE_family %in% c("4_multivariate_normal_wishart")){
 
-      cloud_list[[i]] <- MASS::mvrnorm(n = SAFE_boots,
+      cloud_list[[i]] <- MASS::mvrnorm(n = boots_remaining,
                                        mu = means,
                                        Sigma = (sigma_matrix / c(input$n1, sqrt(input$n1*input$n2), sqrt(input$n1*input$n2), input$n2))) |>
         as.data.frame() |>
@@ -160,7 +161,7 @@
       names(cloud_list[[i]]) <- names(means)
 
       #
-      wishart.cloud <-  stats::rWishart(SAFE_boots,
+      wishart.cloud <-  stats::rWishart(boots_remaining,
                                         df = (input$n1-1),
                                         Sigma = sigma_matrix)
 
@@ -173,8 +174,8 @@
     # Create Binomial clouds --------------------------------------------------------------
     if(formulas$SAFE_family == "2_binomial"){ # lnRR
 
-      cloud_list[[i]] <- data.table::data.table(a = rbinom(SAFE_boots, input$n1, input$a / input$n1) |> as.double(),
-                                    c = rbinom(SAFE_boots, input$n2, input$c / input$n2) |> as.double())
+      cloud_list[[i]] <- data.table::data.table(a = rbinom(boots_remaining, input$n1, input$a / input$n1) |> as.double(),
+                                                c = rbinom(boots_remaining, input$n2, input$c / input$n2) |> as.double())
       cloud_list[[i]][, n1 := input$n1]
       cloud_list[[i]][, n2 := input$n2]
 
@@ -189,8 +190,8 @@
         input$n2 <- input$c + input$d
       }
 
-      cloud_list[[i]] <- data.table::data.table(a = rbinom(SAFE_boots, input$n1, input$a / input$n1) |> as.double(),
-                                    c = rbinom(SAFE_boots, input$n2, input$c / input$n2) |> as.double())
+      cloud_list[[i]] <- data.table::data.table(a = rbinom(boots_remaining, input$n1, input$a / input$n1) |> as.double(),
+                                                c = rbinom(boots_remaining, input$n2, input$c / input$n2) |> as.double())
 
       cloud_list[[i]][, `:=` (b = input$n1 - a,
                               d = input$n2 - c)]
@@ -203,7 +204,7 @@
 
     }else if(formulas$SAFE_family == "3_multinomial"){
       N <- (input$n_AA + input$n_Aa + input$n_aa)
-      cloud_list[[i]] <- stats::rmultinom(n = SAFE_boots,
+      cloud_list[[i]] <- stats::rmultinom(n = boots_remaining,
                                           size = N,
                                           prob = c(n_AA = input$n_AA/N,
                                                    n_Aa = input$n_Aa/N,
@@ -223,7 +224,7 @@
     }
 
     # Filter  -----------------------------------------------------------------
-    cloud_list[[i]] <- cloud_list[[i]][eval(parse(text = formulas$cloud_filtering_rules))]
+    cloud_list[[i]] <- cloud_list[[i]][eval(parse(text = formulas$cloud_filtering_rules)), ]
 
     # Add missing inputs (e.g., n)
     cloud_list[[i]] <- data.table::data.table(cloud_list[[i]],
@@ -236,9 +237,10 @@
                                                               input = cloud_list[[i]])$yi_first)
 
     # Filter out NAs:
-    cloud_list[[i]] <- cloud_list[[i]][!is.na(yi_first)]
+    cloud_list[[i]] <- cloud_list[[i]][!is.na(yi_first), ]
 
     cloud_length <- sapply(cloud_list, nrow) |> sum()
+    boots_remaining <- SAFE_boots - cloud_length
 
   } # End while loop
 
@@ -260,10 +262,12 @@
 
     return(data.table::data.table(yi_safe = yi_safe,
                       vi_safe = vi_safe,
+                      number_SAFE_iterations = i,
                       number_SAFE_bootstraps = nrow(cloud)))
   }else{
     return(data.table::data.table(yi_safe = NA,
                       vi_safe = NA,
+                      number_SAFE_iterations = i,
                       number_SAFE_bootstraps = 0))
   }
 }
