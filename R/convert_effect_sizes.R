@@ -28,7 +28,7 @@ convert_effect_sizes <- function(...,
   if(!is.null(data)) setDT(data)
 
   # Prepare formulas:
-  load("data/conversion_formulas.rda")
+  # load("data/conversion_formulas.rda")
 
   if(is.null(from) | is.null(to)){
 

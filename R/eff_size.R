@@ -47,7 +47,7 @@ eff_size <- function(...,
     if(!is.null(data)) dat <- copy(data)
 
     # Load formulas -----------------------------------------------------------
-    load("data/effect_formulas.rda")
+    # load("data/effect_formulas.rda")
 
     data.table::setorder(effect_formulas, effect_size, calc_type)
 
