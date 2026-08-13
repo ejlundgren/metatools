@@ -241,12 +241,15 @@
 
     cloud_length <- sapply(cloud_list, nrow) |> sum()
     boots_remaining <- SAFE_boots - cloud_length
+    i <- i+1
 
   } # End while loop
 
   cloud <- rbindlist(cloud_list)
 
   if(nrow(cloud) > 0){
+
+    cloud <- cloud[1:SAFE_boots, ] # Filter extra
 
     # bias corrected estimate of sampling variance and SE:
     SE_safe <- sd(cloud$yi_first)
@@ -256,7 +259,7 @@
       bias_SAFE <- mean(cloud$yi_first) - plugin_effect
 
       yi_safe <- plugin_effect - bias_SAFE
-    }else{
+    }else{ #lnM doesn't do bias-correction:
       yi_safe <- mean(cloud$yi_first)
     }
 
