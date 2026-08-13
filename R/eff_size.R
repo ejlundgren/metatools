@@ -210,7 +210,7 @@ eff_size <- function(...,
       if(any(safe_out$number_SAFE_bootstraps < SAFE_boots) &
          !any(is.na(safe_out$yi_safe))){
 
-        cat(magenta("\n\nBoundary issues prevented full number of SAFE bootstraps. Try reducing `SAFE_boots` (1e6 is the default) or increasing time limit `SAFE_max_secs` (15 seconds is default).\n\n"))
+        cat(magenta("\n\nBoundary issues prevented full number of SAFE bootstraps for at least one input. Try reducing `SAFE_boots` (1e6 is the default) or increasing time limit `SAFE_max_secs` (15 seconds is default).\n\n"))
 
       }else if(any(is.na(safe_out$yi_safe))){
 
