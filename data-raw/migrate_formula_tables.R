@@ -13,7 +13,7 @@ effect_formulas
 effect_formulas[escalc_name == "", ]
 
 unique(effect_formulas$effect_size)
-effect_formulas <- effect_formulas[!effect_size %in% c("lnRoM", "SMD", "lnOR", "lnRR", "lnCVR",
+effect_formulas <- effect_formulas[effect_size %in% c("lnRoM", "SMD", "lnOR", "lnRR", "lnCVR",
                                                        "lnHWE_A", "lnVR", "SMDH", "Zr", "lnM")]
 
 effect_formulas[effect_size == "lnHWE_A", effect_size := "lnHWE"]
@@ -26,7 +26,7 @@ effect_formulas <- effect_formulas[, !c("lower_filter", "upper_filter", "n_versi
 
 # Conversion formulas:
 
-conversion_formulas <- fread("data/conversion_formulas.csv")
+conversion_formulas <- fread("../metatools_dev/data/conversion_formulas.csv")
 conversion_formulas
 
 # save(conversion_formulas, file = "../metatools/data/conversion_formulas.rda")
