@@ -267,8 +267,8 @@
     return(data.table::data.table(yi_safe = yi_safe,
                       vi_safe = vi_safe,
                       number_SAFE_iterations = i,
-                      number_SAFE_bootstraps = nrow(cloud)),
-                      SAFE_elapsed_secs = elapsed_time)
+                      number_SAFE_bootstraps = nrow(cloud),
+                      SAFE_elapsed_secs = elapsed_time))
   }else{
     return(data.table::data.table(yi_safe = NA,
                       vi_safe = NA,
