@@ -195,13 +195,6 @@ eff_size <- function(...,
       if(length(plugin_effect_size) != max(index)){ return(cat("Shit.")) }
 
       # Run SAFE function for each element of input_vars:
-      # DEBUG:
-      # input <- lapply(input_vars, "[[", k)
-      # plugin_effect = plugin_effect_size[k]
-      # custom_sigma <- NULL
-      # formulas <- definition_formula
-      # set.seed(34) #leads to error
-
       safe_out <- pbapply::pblapply(index, function(k){
         return(.SAFE_calc(formulas = definition_formula, # Changed to this from `effect_formulas.sub`
                           input = lapply(input_vars, "[[", k), # select the first element in each element...
