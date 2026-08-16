@@ -4,7 +4,9 @@ export(convert_effect_sizes)
 export(eff_size)
 import(crayon)
 import(data.table)
-importFrom(parallel,detectCores)
-importFrom(parallel,mclapply)
+importFrom(parallel,
+  detectCores,
+  mclapply
+)
 importFrom(stats,sd)
 importFrom(tools,R_user_dir)

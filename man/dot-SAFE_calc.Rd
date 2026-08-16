@@ -28,7 +28,6 @@
 }
 \value{
 A data.table with effect sizes and sample variances calculated by SAFE.
-\link{I really don't like this degree of specificity of effect_type manipulation inside the function}
 }
 \description{
 Used internally to calculate SAFE effect sizes. This function calls parameter_cloud and then transforms hyperparameters

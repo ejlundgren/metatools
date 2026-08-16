@@ -138,7 +138,7 @@
         cloud_list[[i]][, `:=` (b = n1 - a,
                                 d = n2 - c)]
       }
-      #' [I really don't like this degree of specificity of effect_type manipulation inside the function]
+
       if(formulas$effect_size == "lnRR"){
         cloud_list[[i]][a == 0, `:=` (a = a + 0.5,
                                       n1 = n1 + 1) ]

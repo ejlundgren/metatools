@@ -1,6 +1,23 @@
 #' Calculate effect sizes
 #'
-#' Blah blah blah
+#' @description
+#' This function calculates effect sizes for meta-analysis.
+#'
+#' @details
+#' It currently supports XXXX effect size point estimates and their sampling variance.
+#' Point estimates are denoted by `yi` and variance estimates by `vi`. If `default_formulas = FALSE` this function will return multiple estimators
+#' of the same effect size. `_first` indicate the definition formula of the effect size. For example, for SMD (standardized mean difference),
+#' this would be Cohen's d. `_second` denote second-order derivatives that account for small-sample bias---but actually may be more biased.
+#' For example, for SMD, the `vi_second` is more biased than `vi_first`. Likewise, different estimators may have different assumptions.
+#'
+#' If `default_formulas = TRUE` then the function returns the "best" estimators, following the same logic as `metafor::escalc` (Viechtbauer 2010).
+#'
+#' These are described at length in Lundgren et al. XXXXX
+#'
+#' @references
+#' W. Viechtbauer, Conducting meta-analyses in R with the metafor package. Journal of Statistical Software. (2010). https://doi.org/10.18637/jss.v036.i03.
+#'
+#' **ADD a message in function regarding which estimator is preferred if default_formulas = FALSE?**
 #'
 #' @import data.table
 #' @import crayon

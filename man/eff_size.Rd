@@ -17,7 +17,7 @@ eff_size(
   SAFE_max_secs = 15,
   n_cores = 1,
   SAFE_distribution = NULL,
-  sigma_matrix = NULL,
+  custom_sigma_matrix = NULL,
   verbose = T
 )
 }
@@ -44,13 +44,29 @@ eff_size(
 
 \item{SAFE_distribution}{Character. Distribution to use for SAFE bootstrapping. If unspecified, will use default distribution. See Details.}
 
-\item{sigma_matrix}{Matrix. Optional custom sigma_matrix for SAFE bootstrapping (experimental)}
-
 \item{verbose}{How chatty do you want the function to be? Logical}
+
+\item{sigma_matrix}{Matrix. Optional custom sigma_matrix for SAFE bootstrapping (experimental)}
 }
 \value{
 A data.table with effect sizes and sample variances.
 }
 \description{
-Blah blah blah
+This function calculates effect sizes for meta-analysis.
+}
+\details{
+It currently supports XXXX effect size point estimates and their sampling variance.
+Point estimates are denoted by \code{yi} and variance estimates by \code{vi}. If \code{default_formulas = FALSE} this function will return multiple estimators
+of the same effect size. \verb{_first} indicate the definition formula of the effect size. For example, for SMD (standardized mean difference),
+this would be Cohen's d. \verb{_second} denote second-order derivatives that account for small-sample bias---but actually may be more biased.
+For example, for SMD, the \code{vi_second} is more biased than \code{vi_first}. Likewise, different estimators may have different assumptions.
+
+If \code{default_formulas = TRUE} then the function returns the "best" estimators, following the same logic as \code{metafor::escalc} (Viechtbauer 2010).
+
+These are described at length in Lundgren et al. XXXXX
+}
+\references{
+W. Viechtbauer, Conducting meta-analyses in R with the metafor package. Journal of Statistical Software. (2010). https://doi.org/10.18637/jss.v036.i03.
+
+\strong{ADD a message in function regarding which estimator is preferred if default_formulas = FALSE?}
 }

@@ -21,4 +21,4 @@ Imports:
 	crayon (>= 1.5.3),
 	tools (>= 4.5.0)
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 8.1.0
+Config/roxygen2/version: 8.1.0
