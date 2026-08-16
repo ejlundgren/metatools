@@ -1,10 +1,10 @@
 #' Convert between effect size types
 #'
 #' Function to convert effect sizes. The following conversions are available:
-#' from lnOR -> SMD, from SMD -> lnOR, from Zr -> SMD, and from SMD -> Zr. The
+#' from lnOR <-> SMD, from SMD <-> lnOR, and from lnOR <-> Zr. The
 #' conversions involving Zr can also be calculated with 'r'. The variables
 #' required for each conversion are listed in details and will be returned by
-#' running convert_effect_sizes()
+#' running convert_effect_sizes().
 #'
 #' @import data.table
 #' @import crayon

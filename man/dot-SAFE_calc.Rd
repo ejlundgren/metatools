@@ -14,17 +14,17 @@
 )
 }
 \arguments{
-\item{formulas}{blah}
+\item{formulas}{The formula table subsetted to the \strong{definition} formula of the effect size}
 
-\item{input}{blah}
+\item{input}{A list of named input variables input by \code{eff_size}. E.g., \verb{list(x1 = 5, x2, = 10, sd1 = 1, sd2 = 1, n1 = 10, n2 = 10)}}
 
-\item{plugin_effect}{blah}
+\item{plugin_effect}{The plugin effect size value.}
 
-\item{custom_sigma}{blah}
+\item{custom_sigma}{A custom sigma matrix input by users. Not currently used or tested.}
 
-\item{SAFE_boots}{blah}
+\item{SAFE_boots}{The number of SAFE bootstraps.}
 
-\item{SAFE_max_secs}{blah}
+\item{SAFE_max_secs}{The maximum time limit for calculations.}
 }
 \value{
 A data.table with effect sizes and sample variances calculated by SAFE.

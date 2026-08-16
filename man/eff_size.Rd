@@ -52,21 +52,66 @@ eff_size(
 A data.table with effect sizes and sample variances.
 }
 \description{
-This function calculates effect sizes for meta-analysis.
+This function calculates effect sizes for meta-analysis. This is meant as a compliment to \code{metafor}'s \code{escalc} function (Viechtbauer 2010), giving more control over
+the choice of estimator and supporting some paired designs and new effect sizes.
 }
 \details{
-It currently supports XXXX effect size point estimates and their sampling variance.
+This function currently supports 10 effect size point estimates and their sampling variances. The table below summarizes
+the effect sizes currently supported, their \code{escalc} \code{measure} argument names.
+
+For continuous responses (summarized as mean±SD) between two groups:
+\itemize{
+\item "lnRoM": log-transformed response ratio. In \code{escalc} this is "ROM"
+\item "SMD": standardized mean difference, also known as Cohen's d and Hedges' g (see below). In \code{escalc} this is "SMD"
+\item "SMDH": standardized mean difference for heteroscedastic data. In \code{escalc} this is also "SMDH"
+\item "lnVR": log-transformed variance ratio. In \code{escalc} this is "XXXX"
+\item "lnCVR": log-transformed coefficient of variation ratio. In \code{escalc} this is "XXXX"
+\item "lnM": log magnitude effect size. This is not available in \code{escalc}
+}
+
+For discrete responses (e.g., alive or dead) between two groups:
+\itemize{
+\item "lnOR": log odds ratio. In \code{escalc} this is "OR"
+\item "lnRR": log risk ratio (or relative risk ratio). In \code{escalc} this is "RR"
+}
+
+For continous predictors (correlations):
+\itemize{
+\item "Zr": z-to-r-transformed correlation coefficient. In \code{escalc} this is "ZCOR"
+}
+
+And a less used one: the probability of three binary responses within one population:
+\itemize{
+\item "HWE": Hardy-Weinburg disquilibrium. In \code{escalc} ???
+}
+
 Point estimates are denoted by \code{yi} and variance estimates by \code{vi}. If \code{default_formulas = FALSE} this function will return multiple estimators
 of the same effect size. \verb{_first} indicate the definition formula of the effect size. For example, for SMD (standardized mean difference),
 this would be Cohen's d. \verb{_second} denote second-order derivatives that account for small-sample bias---but actually may be more biased.
-For example, for SMD, the \code{vi_second} is more biased than \code{vi_first}. Likewise, different estimators may have different assumptions.
+For example, for SMD, the \code{vi_second} is more biased than \code{vi_first}.
+
+These different estimators may have different assumptions and are more or less biased under different scenarios.
+For example, for "lnRoM" (log response ratio or ratio of means), the first-order definition formula
+can be biased at low sample size but is less biased than the second-order estimator if the data is overdispersed.
+See Lundgren et al. XXXX.
 
 If \code{default_formulas = TRUE} then the function returns the "best" estimators, following the same logic as \code{metafor::escalc} (Viechtbauer 2010).
 
-These are described at length in Lundgren et al. XXXXX
+If \code{verbose = TRUE}, the function returns the formulas used for the calculations as well as warnings regarding assumptions. To load the formulas
+in your environment, run \code{data("effect_formulas")}.
+\subsection{SAFE bootstrapping estimates}{
+
+This function supports SAFE bootstrapping for effect size point size and variance calculations. These are not necessary for most effect sizes
+but are necessary to calculate \strong{lnM} (an estimator for magnitude of differences between groups, regardless of direction). To use SAFE, set SAFE=TRUE.
+If you are using SAFE, you may need to adjust \code{SAFE_boots} (the number of SAFE bootstraps) and
+\code{SAFE_max_secs}, which sets the time-out limit when calculating SAFE for distributions where certain uncalculable values must be excluded. For more
+information on SAFE see Nakagawa et al. 2026 and the associated tutorial.
+}
 }
 \references{
 W. Viechtbauer, Conducting meta-analyses in R with the metafor package. Journal of Statistical Software. (2010). https://doi.org/10.18637/jss.v036.i03.
+
+S. Nakagawa, A. Mizuno, C. Williams, S. Ortega, S. M. Drobniak, M. Lagisz, Y. Yang, A. M. Senior, D. W. A. Noble, E. Lundgren, Mastering an Accurate and generalizable simulation-based method to obtain bias-corrected point estimates and sampling variance for any effect sizes, Research Synthesis Methods (2026).TO DO:
 
 \strong{ADD a message in function regarding which estimator is preferred if default_formulas = FALSE?}
 }

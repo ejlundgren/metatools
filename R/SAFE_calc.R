@@ -4,12 +4,12 @@
 #'
 #' @import data.table
 #' @importFrom stats sd
-#' @param formulas blah
-#' @param input blah
-#' @param plugin_effect blah
-#' @param custom_sigma blah
-#' @param SAFE_boots blah
-#' @param SAFE_max_secs blah
+#' @param formulas The formula table subsetted to the **definition** formula of the effect size
+#' @param input A list of named input variables input by `eff_size`. E.g., `list(x1 = 5, x2, = 10, sd1 = 1, sd2 = 1, n1 = 10, n2 = 10)`
+#' @param plugin_effect The plugin effect size value.
+#' @param custom_sigma A custom sigma matrix input by users. Not currently used or tested.
+#' @param SAFE_boots The number of SAFE bootstraps.
+#' @param SAFE_max_secs The maximum time limit for calculations.
 #' @return A data.table with effect sizes and sample variances calculated by SAFE.
 .SAFE_calc <- function(formulas,
                        input,
